@@ -1,0 +1,54 @@
+STATUS: FINISHED
+Waiting for Senders
+Waiting for Senders
+Waiting for Senders
+Waiting for Senders
+Sending message: 1
+BUFFER VAL FROM SENDER: 1
+Message has been dropped off, waking receiver
+ONE is signalled ReadyToRun
+STATUS: FINISHED
+Sending message: 2
+BUFFER VAL FROM SENDER: 2
+Message has been dropped off, waking receiver
+TWO is signalled ReadyToRun
+STATUS: FINISHED
+Sending message: 3
+BUFFER VAL FROM SENDER: 3
+Message has been dropped off, waking receiver
+THREE is signalled ReadyToRun
+STATUS: FINISHED
+Sending message: 4
+BUFFER VAL FROM SENDER: 4
+Message has been dropped off, waking receiver
+FOUR is signalled ReadyToRun
+STATUS: FINISHED
+Going to check if buffer empty
+Accepting message from sender
+About to set message value to: 4
+#############################################
+MAILBOX
+Message received: 4 
+Current Thread Name: ONE
+#############################################
+STATUS: FINISHED
+Going to check if buffer empty
+Waiting for message dropoff
+NO THREADS TO SIGNAL
+Going to check if buffer empty
+Waiting for message dropoff
+NO THREADS TO SIGNAL
+Going to check if buffer empty
+Waiting for message dropoff
+NO THREADS TO SIGNAL
+No threads ready or runnable, and no pending interrupts.
+Assuming the program completed.
+Machine halting!
+
+Ticks: total 410, idle 0, system 410, user 0
+Disk I/O: reads 0, writes 0
+Console I/O: reads 0, writes 0
+Paging: faults 0
+Network I/O: packets received 0, sent 0
+
+Cleaning up...

@@ -1,0 +1,227 @@
+CSE 120 Group 1 Project 2 README
+Group Members:
+  Angela To
+  Frank Mezzatesta
+  Linda Shih
+  Bhagya Sharma
+
+1. MemoryManager and AddrSpace
+  a) Description
+       We first started by implementing the MemoryManager class using the
+     BitMap class to track pages, and allocate and free physical pages.
+     AllocPage() allocates a free page and returns the physical page
+     number if successful, -1 if not. FreePage() frees the physical
+     page, and PageIsAllocated() checks if the physical page number
+     has been allocated or not. We initialized a MemoryManager object
+     within StartProcess() as well.
+       In AddrSpace, we moved the body of the constructor into a new
+     function called Initialize(), so that errors can be thrown from
+     Initialize(). From there, we allocate pages for the new process,
+     load the code and data into those pages. If there is not enough
+     memory to load the entire program, it will cleanup.
+  b) Status
+       This portion has been implemented and we believe it to be working.
+  c) Testing
+       We did not exactly have a way to test this, but we tested this
+     with Exec and Exit from Part 2.
+  d) Contributions
+       Angela, Frank, Linda, and Bhagya all contributed to this part.
+
+2. Syscall Exec and Exit
+  a) Description
+       We created a Table class that would track all active processes.
+     We then instantiated a Table object within StartProcess(). Alloc()
+     will allocate a slot in the Table, and then return the index. *Get()
+     will retrieve the object from the table at a specified index.
+     Release() will free the table slot at the specified index.
+       Using the process table, we implemented Exec inside exception.cc.
+     Exec() attempts to open the specified file, and if it is successful,
+     will create a new AddrSpace. From there, a new thread is created and
+     a process is allocated on the process table. Exec will then fork
+     the process, and return the SpaceId once completed.
+  b) Status
+       This portion has been implemented and we believe it to be working.
+     However, sometimes we get strange tick messages and interrupts on->off
+     messages that we do not know ow to control. It does not seem to affect
+     behavior of the program.
+  c) Testing
+       We were able to test both Part 1 and Part 2 at the same time.
+     We began by running tests provided to us, such as array.c, exittest.c,
+     and exectest.c, matmult.c, and sort.c.
+     1) exectest2.c
+        Attempts to Exec a filename with a bad string address.
+        Should return 0.
+        Command: ./nachos -x ../test/exectest2
+        Expected Output:
+        File could not be opened.
+        Calling syscall_exit with status: 0
+     2) exectest3.c
+        Attempts to Exec a filename (that exists) that does not end with a
+        null character. Should execute file successfully, then return 1.
+        NOTE: Exec handler adds a null character to every filename passed in.
+        Command: ./nachos -x ../test/exectest3
+        Expected Output:
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1
+     3) exectest4.c
+        Attempts to Exec a filename that does not exist.
+        Should return 0.
+        Command: ./nachos -x ../test/exectest4
+        Expected Output:
+        File could not be opened.
+        Calling syscall_exit with status: 0
+     4) exectest5.c
+        Attempts to load a program that does not fit into physical memory.
+        Should return 0.
+        Command: ./nachos -x ../test/exectest5
+        Expected Output:
+        Not enough memory!
+        Address space could not be initialized.
+        Calling syscall_exit with status: 0
+     5) exectest6.c
+        Loads many programs one after the other. AddrSpace should release
+        memory when a process goes away so it can be used again.
+        Should be able to run all processes, then
+        Should return 4.
+        [NOTE: Tested with MAX table size of 4 processes]
+        Command: ./nachos -x ../test/exectest6
+        Expected Output:
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 4
+     6) exectest7.c
+        Attempts to Exec a filename (that DNE) that does not end with a
+        null character. Should say file could not be opened, then return 0.
+        NOTE: Exec handler adds a null character to every filename passed in.
+        Command: ./nachos -x ../test/exectest7
+        Expected Output:
+        File could not be opened.
+        Calling syscall_exit with status: 0
+
+     7) exittest.c
+        Calls Exit() twice, one after the other. The second Exit() call
+        should not be able to be reached. Should return 123.
+        Command: ../nachos -x ../test/exittest
+        Expected Output:
+        Calling syscall_exit with status: 123
+  d) Contributions
+       Angela worked on Exit, and Linda worked on Exec. Frank and Bhagya
+     helped with debugging, and Angela wrote the greater majority of the
+     tests for this part.
+
+4. Syscall Read and Write
+  a) Description
+       For this section, we began by implementing a SynchConsole that that
+     would provide synchronous access to the console.
+       Write() first checks the number of bytes specified to be written.
+     If valid, it attempts to do a ReadMem, byte by byte, and then returns
+     the buffer to the SynchConsole object.
+       Read() will check the number of bytes to be read, and if valid,
+     will perform a WriteMem byte by byte to the SynchConsole object.
+       After all of this, the program counter will be increased and the
+     buffer will be cleared.
+  b) Status
+       This portion has been implemented and we believe it to be working.
+  c) Testing
+    We tested our code with simple tests that we wrote ourselves.
+    After that, we tested with echo.c and snake.c, which was provided
+    by the professor.
+    We wrote 3 tests for Read() and 3 test for Write().
+    1) readtest.c
+       Basic test for Read, with size 1, and writing to ConsoleInput.
+       Should not fail and return 1.
+       Command: ./nachos -x ../test/readtest
+       Expected Output:
+       asdfadfasdfasdvndfsjewkln
+       Calling syscall_exit with status: 0
+    2) readtest2.c
+       Test with a negative number of bytes.
+       Should fail and return -1.
+       Command: ./nachos -x ../test/readtest2
+       Expected Output:
+       Error, negative size to read.
+       Calling syscall_exit with status: 0
+    3) readtest3.c
+       Test that writes to ConsoleOutput.
+       Should fail and return 0.
+       Command: ./nachos -x ../test/readtest3
+       Expected Output:
+       Cannot read!
+       Calling syscall_exit with status: 0
+    4) writetest.c
+       Basic correctness test, writes string to console.
+       Command: ./nachos -x ../test/writetest
+       Expected Output:
+       aaaaaaaaaa
+       Calling syscall_exit with status: 0
+    5) writetest2.c
+       Attempts to write an incorrect number of bytes.
+       Command: ./nachos -x ../test/writetest2
+       Expected Output:
+       Can't write negative bytes!
+       Calling syscall_exit with status: 0
+    6) writetest3.c
+       Attempts to write to incorrect console. 
+       Command: ./nachos -x ../test/writetest3
+       Expected Output:
+       Cannot write!
+       Calling syscall_exit with status: 0
+  d) Contributions
+       Angela worked on implementing Write(), Linda implemented Read(),
+     and Bhagya implemented the SynchConsole class. Linda worked on
+     debugging and fixing both Write() and Read(), as well as testing for
+     this part.
+
+5. ExceptionHandler
+  a) Description
+       In this part we added print statements to each exception that was not
+     a system call. We then called syscall_exit() as a cleanup function,
+     instead of ASSERT(false) to make it more user program-friendly.
+  b) Status
+       This portion has been implemented and we believe it to be working.
+  c) Testing
+       We wrote 4 tests for this part, 2 per exception:
+       1) AddressErrorException_SingleProcess.c
+          This tests the AddressErrorException thrown from ExceptionHandler.
+          Attempts to access a pointer to an invalid value.
+          This tests for only when a single process is run, the exception
+          should still be handled cleanly.
+          Command: ./nachos -x ../test/AddressErrorException_SingleProcess
+          Expected Output:
+          Unaligned reference or one that was beyond the end of the address space
+          Calling syscall_exit with status: 0
+       2) AddressErrorException_ExecProcess.c
+          This tests the AddressErrorException thrown from ExceptionHandler
+          when the process is run using Exec() syscall.
+          Command: ./nachos -x ../test/AddressErrorException_ExecProcess
+          Expected Output:
+          Unaligned reference or one that was beyond the end of the address space
+          Calling syscall_exit with status: 0
+          Calling syscall_exit with status: 2
+       3) IllegalInstrException_SingleProcess.c
+          This tests the IllegalInstrException thrown from ExceptionHandler
+          when run with a single process. The exception should still be
+          handled cleanly.
+          Command: ./nachos -x ../test/IllegalInstrException_SingleProcess
+          Expected Output:
+          Unimplemented or reserved instruction
+          Calling syscall_exit with status: 0
+       4) IllegalInstrException_ExecProcess.c
+          This tests the IllegalInstrException thrown from the ExceptionHandler
+          when the process is run using the Exec() syscall.
+          Command: ./nachos -x ../test/IllegalInstrException_ExecProcess
+          Expected Output:
+          Unimplemented or reserved instruction
+          Calling syscall_exit with status: 0
+          Calling syscall_exit with status: 2
+  d) Contributions
+       Linda worked on implementing the print statements and cleanup calls in
+     each exception, and Frank wrote all 4 tests. 

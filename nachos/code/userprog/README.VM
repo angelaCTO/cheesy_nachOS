@@ -1,0 +1,764 @@
+CSE 120 Group 1 Project 3 README
+Group Members:
+  Angela To
+  Frank Mezzatesta
+  Linda Shih
+  Bhagya Sharma
+
+Part 1
+  a) Description
+     This part was prep work for Part 2. We deleted the code that zeroed out
+     the physical page frames, loaded in code/data segments from the file, and
+     prevents program from proceeding if there is too much memory. We created a
+     method in AddrSpace to prepare the requested page on demand. In this 
+     method we used the page number that there was a fault on to determine 
+     which segment (code or data) should be loaded in. If the page was not part
+     of any of these segements, we zero-filled the frame (bzero). After loading
+     in these segments, the page number was set to valid. We also created 
+     pointers to the executable and noffheader that was passed into Initialize.
+  b) Status
+     We believe this part to be working correctly based on our tests.
+  c) Testing
+     To test this part we ran sample tests that were given to us in Project 2
+     like array.c and made sure the exit status was the same.
+  d) Contributions
+
+Part 2 
+  a) Description
+     We set our Initialize() method in AddrSpace to only calculate the size and
+     the numPages along with initialize our PTEs virtual pages and set them as
+     invalid. Our Page Fault Handler allocates a physical page, if memory is
+     full, we use Random() to randomly select a page to evict. If the randomly
+     selected PTE is not pointing to anything in memory (-1) then we continue
+     to randomly select until we find a PTE that does. If the PTE is dirty, 
+     we save the contents on the backing store object in the AddrSpace class,
+     which is initialized in StartProcess and Exec. BackingStore does PageIn
+     and PageOut using the n*PageSize offset. After contents have been written
+     to the backing store, the memory manager frees the evicted page, the 
+     evicted PTE has reset valid and dirty bits, and the physical page of the
+     evicted PTE is now -1. Memory manager now allocates a page and proceeds 
+     with loading in data into memory. If the page being loaded in is in
+     backingstore (this is checked using a boolean array of size numPages in
+     backing store), then we load from backing store, else we load from the
+     noffHeader.
+  b) Status
+     We believe this part to be working correctly based on our tests.
+  c) Testing
+       We were able to test both Part 1 and Part 2 at the same time.
+     We began by running tests provided to us, such as array.c, exittest.c,
+     and exectest.c, matmult.c, and sort.c.
+     1) exectest2.c
+        Attempts to Exec a filename with a bad string address.
+        Should return 0.
+        Command: ./nachos -x ../test/exectest2
+        Expected Output:
+        Number of Pages: 11
+        Number of PhysPages: 32
+        Initializing address space, num pages 11, size 1408
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 2
+        ******************************
+        Stats Output:
+        Ticks: total 149, idle 0, system 130, user 19
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 5, page ins 3, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        File could not be opened.
+        Calling syscall_exit with status: 0
+     2) exectest3.c
+        Attempts to Exec a filename (that exists) that does not end with a
+        null character. Should execute file successfully, then return 1.
+        NOTE: Exec handler adds a null character to every filename passed in.
+        Command: ./nachos -x ../test/exectest3
+        Expected Output:
+        ----------------------------- 
+        Number of Pages: 12
+        Number of PhysPages: 32
+        Initializing address space, num pages 12, size 1536
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        Page number: 5
+        ******************************
+        Stats Output:
+        Ticks: total 722, idle 0, system 290, user 432
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 11, page ins 14, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 1
+     3) exectest4.c
+        Attempts to Exec a filename that does not exist.
+        Should return 0.
+        Command: ./nachos -x ../test/exectest4
+        Expected Output:
+        Number of Pages: 11
+        Number of PhysPages: 32
+        Initializing address space, num pages 11, size 1408
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 2
+        ******************************
+        Stats Output:
+        Ticks: total 129, idle 0, system 110, user 19
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 4, page ins 3, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        File could not be opened.
+        Calling syscall_exit with status: 0
+     4) exectest5.c
+        Attempts to load a program that does not fit into physical memory.
+        Should return 0.
+        Command: ./nachos -x ../test/exectest5
+        Expected Output:
+        Number of Pages: 11
+        Number of PhysPages: 32
+        Initializing address space, num pages 11, size 1408
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 2
+        ******************************
+        Stats Output:
+        Ticks: total 129, idle 0, system 110, user 19
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 4, page ins 3, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Number of Pages: 46
+        Number of PhysPages: 32
+        Initializing address space, num pages 46, size 5888
+        Switching from thread "main" to thread "new thread"
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 192, idle 0, system 170, user 22
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 5, page ins 4, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 0
+        Not enough memory! Now evicting pages...
+        Chosen Victim Page: 32
+        Physical Page Being Allocated: 27
+        ******************************
+        Stats Output:
+        Ticks: total 32688612, idle 0, system 170630, user 32517982
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 2864, page ins 2830, page outs 2546
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 0
+        Calling syscall_exit with status: 1
+     5) exectest6.c
+        Loads many programs one after the other. AddrSpace should release
+        memory when a process goes away so it can be used again.
+        Should be able to run all processes, then
+        Should return 4.
+        Command: ./nachos -x ../test/exectest6
+        Number of Pages: 11
+        Number of PhysPages: 32
+        Initializing address space, num pages 11, size 1408
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 2
+        ******************************
+        Stats Output:
+        Ticks: total 129, idle 0, system 110, user 19
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 4, page ins 3, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+
+        Number of PhysPages: 32
+        Initializing address space, num pages 14, size 1792
+        Switching from thread "main" to thread "new thread"
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 197, idle 0, system 170, user 27
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 5, page ins 5, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 5
+        ******************************
+        Stats Output:
+        Ticks: total 704, idle 0, system 290, user 414
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 11, page ins 14, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 1128
+        Number of Pages: 14
+        Number of PhysPages: 32
+        Initializing address space, num pages 14, size 1792
+        Switching from thread "main" to thread "new thread"
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 3840, idle 0, system 540, user 3300
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 12, page ins 16, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 5
+        ******************************
+        Stats Output:
+        Ticks: total 4347, idle 0, system 660, user 3687
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 18, page ins 25, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 1128
+        Number of Pages: 14
+        Number of PhysPages: 32
+        Initializing address space, num pages 14, size 1792
+        Switching from thread "main" to thread "new thread"
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 7483, idle 0, system 910, user 6573
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 19, page ins 27, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 5
+        ******************************
+        Stats Output:
+        Ticks: total 7990, idle 0, system 1030, user 6960
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 25, page ins 36, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 1128
+        Number of Pages: 14
+        Number of PhysPages: 32
+        Initializing address space, num pages 14, size 1792
+        Switching from thread "main" to thread "new thread"
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 11126, idle 0, system 1280, user 9846
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 26, page ins 38, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 5
+        ******************************
+        Stats Output:
+        Ticks: total 11633, idle 0, system 1400, user 10233
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 32, page ins 48, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 1128
+
+        Number of Pages: 14
+        Number of PhysPages: 32
+        Initializing address space, num pages 14, size 1792
+        Switching from thread "main" to thread "new thread"
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 14769, idle 0, system 1650, user 13119
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 33, page ins 50, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 5
+        ******************************
+        Stats Output:
+        Ticks: total 15276, idle 0, system 1770, user 13506
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 39, page ins 60, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 1128
+        Calling syscall_exit with status: 0
+
+     6) exectest7.c
+        Attempts to Exec a filename (that DNE) that does not end with a
+        null character. Should say file could not be opened, then return 0.
+        NOTE: Exec handler adds a null character to every filename passed in.
+        Command: ./nachos -x ../test/exectest7
+        Expected Output:
+
+     7) exittest.c
+        Calls Exit() twice, one after the other. The second Exit() call
+        should not be able to be reached. Should return 123.
+        Command: ../nachos -x ../test/exittest
+        Expected Output:
+        Number of Pages: 11
+        Number of PhysPages: 32
+        Initializing address space, num pages 11, size 1408
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 10
+        ******************************
+        Stats Output:
+        Ticks: total 95, idle 0, system 90, user 5
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 3, page ins 2, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 123
+
+     8) matmult.c
+        Performs matrix multiplication.
+        Command: ../nachos -x ../test/matmult
+        Expected Output:
+        Number of Pages: 53
+        Number of PhysPages: 32
+        Initializing address space, num pages 53, size 6784
+  
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 0
+        Not enough memory! Now evicting pages...
+        Chosen Victim Page: 15
+        Physical Page Being Allocated: 30
+        ******************************
+        Stats Output:
+        Ticks: total 603320, idle 0, system 4870, user 598450
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 102, page ins 64, page outs 41
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 7220
+
+     9) sort.c
+        Command: ../nachos -x ../test/sort
+        Expected Output:
+        Number of Pages: 46
+        Number of PhysPages: 32
+        Initializing address space, num pages 46, size 5888
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 0
+        Not enough memory! Now evicting pages...
+        Chosen Victim Page: 23
+        Physical Page Being Allocated: 1
+        ******************************
+        Stats Output:
+        Ticks: total 32569909, idle 0, system 53890, user 32516019
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 919, page ins 886, page outs 810
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 0
+  d) Contributions
+
+Part 3
+  a) Description
+     For this part, we wrote tests to test what we have implemented, please
+     see our Testing section to see all tests we wrote.     
+  b) Status
+     We believe this part to be working correctly based on our tests.
+  c) Testing
+     1) pagetest_allpages.c
+        Test that allocates all physical pages (32). 
+        Should have no page replacement and return 204480.
+        Command: ./nachos -x ../test/pagetest_allpages
+        Expected Output:
+        Number of Pages: 32
+        Number of PhysPages: 32
+        Initializing address space, num pages 32, size 4096
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 23
+        ******************************
+        Stats Output:
+        Ticks: total 12286, idle 0, system 530, user 11756
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 25, page ins 4, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 204480
+     2) pagetest_somepages.c
+        Test that allocates some physical pages.
+        Should have no page replacement and return 51040.
+        Command: ./nachos -x ../test/pagetest_somepages
+        Expected Output:
+        Number of Pages: 22
+        Number of PhysPages: 32
+        Initializing address space, num pages 22, size 2816
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 13
+        ******************************
+        Stats Output:
+        Ticks: total 5996, idle 0, system 330, user 5666
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 15, page ins 4, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 51040
+     3) pagetest_replacement.c
+        Test that allocates more pages than there are physical pages. Page 
+        replacement (Random) should start working here and test should
+        return 523776. 
+        Command: ./nachos -x ../test/pagetest_replacement
+        Expected Output:
+        Number of Pages: 44
+        Number of PhysPages: 32
+        Initializing address space, num pages 44, size 5632
+
+        ------------------------------
+        Page number: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 30
+        Not enough memory! Now evicting pages...
+        Chosen Victim Page: 24
+        Physical Page Being Allocated: 25
+        ******************************
+        Stats Output:
+        Ticks: total 38751, idle 0, system 1570, user 37181
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 47, page ins 14, page outs 12
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 523776
+     4) pagetest_goodlocal.c
+        Test that repeatedly access a small subset of pages, by making only 3
+        memory references in an array. This is done by repeated calling a
+        function that accesses only 3 elements in the array.
+        Should only be accessing a subset of pages and exit with 630.
+        Command: ./nachos -x ../test/pagetest_goodlocal
+        Our Output:
+        Number of Pages: 14
+        Number of PhysPages: 32
+        Initializing address space, num pages 14, size 1792
+
+        ------------------------------
+        Page number: 0
+        physical page is: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 3
+        physical page is: 4
+        ******************************
+        Stats Output:
+        Ticks: total 156, idle 0, system 130, user 26
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 5, page ins 4, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 630
+     5) pagetest_poorlocal.c
+        Test that accesses all pages repeatedly in the same sequence, by 
+        accessing all elements of an array. This is done by repeatedly summing
+        all the elements in the array.
+        Should access all pages repeatedly, in sequence and exit with 66055.
+        Command: ./nachos -x ../test/pagetest_poorlocal
+        Our output:
+        Number of Pages: 14
+        Number of PhysPages: 32
+        Initializing address space, num pages 14, size 1792
+
+        ------------------------------
+        Page number: 0
+        physical page is: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 5
+        physical page is: 6
+        ******************************
+        Stats Output:
+        Ticks: total 1049, idle 0, system 170, user 879
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 7, page ins 6, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 66055
+     6) pagetest_randomlocal.c
+        Test that accesses pages randomly, by using a rand() function with an
+        array. This is done by summing random elements of an array.
+        Should access pages randomly with 1228.
+        Command: ./nachos -x ../test/pagetest_randomlocal
+        Our output:
+        Number of Pages: 16
+        Number of PhysPages: 32
+        Initializing address space, num pages 16, size 2048
+
+        ------------------------------
+        Page number: 0
+        physical page is: 0
+        ******************************
+        Stats Output:
+        Ticks: total 50, idle 0, system 50, user 0
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 1, page ins 1, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        .
+        .
+        .
+        ------------------------------
+        Page number: 6
+        physical page is: 8
+        ******************************
+        Stats Output:
+        Ticks: total 325, idle 0, system 210, user 115
+        Disk I/O: reads 0, writes 0
+        Console I/O: reads 0, writes 0
+        Paging: faults 9, page ins 8, page outs 0
+        Network I/O: packets received 0, sent 0
+        ==============================
+        Calling syscall_exit with status: 1228
+  d) Contributions
+
+Part 4
+  a) Description
+     For this part, we added counters to stats.h and incremented them in the
+     PageIn method of backing store, and wherever data was read from for the 
+     particular page (PageOut in backing store or intitalizing with code/data
+     segments). The page fault counter is incremented in exception.cc before
+     the page fault exception handler is run. For page replacement, we decided
+     on Random and implemented this by randomly choosing a page to evict, if 
+     the chosen evicted page is not valid, we keep randomly picking a new page
+     until we find an evicted page that is valid. 
+     NOTE: For the printing the statistics, we did it after every Page Fault,
+     instead of before cleaning up in system.cc because we have the hanging 
+     console for every single test we run.
+  b) Status
+     We believe this part to be working correctly based on our tests.
+  c) Testing
+     This part was tested by printing the counters in our exception handler.
+     The random page replacement was tested by printing out the randomly chosen
+     evicted pages.   
+  d) Contributions
+
+Table for Paging Counters Per Test
+Physical Memory Size: 32 pages
+Page Replacement Policy: Random
+
+Program               PageFaults        PageIns       PageOuts
+halt                  3                 2             0
+matmult               102               64            41 
+sort                  919               886           810
+pagetest_replacement  47                14            12
+exectest5             2864              2830          2546

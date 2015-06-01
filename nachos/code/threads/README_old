@@ -1,0 +1,816 @@
+CSE 120 Group 1 Project 1 README
+Group Members:
+  Angela To
+  Frank Mezzatesta
+  Linda Shih
+  Bhagya Sharma
+
+
+1. Locks and Conditions
+   a. Description
+      For the Lock class, we made heavy use of the hints file and used the
+      Semaphore methods P() and V() as a basis to write Lock methods
+      Acquire() and Release(). For Acquire, we disabled interrupts in order
+      to make it atomic, and checked that the current lock was not being held
+      to ensure that a lock wouldn't be acquired twice by the same thread. In
+      a while loop, we check if the held variable is true and then appended
+      the current thread to our private variable queue that contained our
+      held threads. We then made the thread sleep because it's waiting, and
+      then set our held variable to 1, because it is being held.
+      Interrupts are then re-enabled.
+      For Release, we disable interrupts (for atomicity), check if the thread
+      is being held, we then pop the head off of the queue variable, to release
+      the thread that was waiting. This thread is then unblocked by putting it
+      on the scheduler's ready list. The held variable is set to 0 because the
+      thread is now released and interrupts are now re-enabled.
+
+      For the Condition class, we also made heavy use of the hints file. We
+      created a wait list queue in the Condition class that will hold all of
+      the threads that are waiting. For the wait method, we assert that the
+      lock being passed in has been acquired. We then disable interrupts and
+      Append the thread that is to be waiting on the wait list. The lock is 
+      then released so that the thread can be blocked by calling Sleep. The
+      lock is then reacquired and interrupts are reenabled.
+      For Signal, we checked that the lock was being held, disabled interrupts
+      and then popped the head of the wait list off to get the first thread
+      on the wait list. This thread is then unblocked and put on the ready list
+      in scheduler. Interrupts are then reenabled.
+      For Broadcast, we do something similar to Signal except we remove all of
+      the threads from the wait list instead of the first one and put all of
+      these threads on the scheduler's ready list.
+   
+   b. Status
+      We are pretty confident that we implemented these methods correctly. 
+      This should be the most correct part in our entire assignment, since
+      Locks and Conditions are used in the subsequent problems.
+
+   c. Testing
+      We implemented the following test cases:
+      (1) Acquiring the same lock twice
+          Command: ./nachos -q 2
+          Call: Thread1 Acquire
+                Thread1 Acquire
+            Thread1 should not be able to acquire the same lock twice,
+            without releasing it first.
+          Output: Assertion failed: line 79, file "../threads/thread.cc"
+                  Aborted (core dumped)
+
+      (2) Releasing a lock that isn't held
+          Command: ./nachos -q 3
+          Call: Thread1 Release
+            Thread1 should not be able to release a lock that it has not
+            yet acquired.
+          Output: Assertion failed: line 146, file "../threads/synch.cc"
+                  Aborted (core dumped)
+
+      (3) Deleting a lock that isn't held
+          Command: ./nachos -q 4
+          Call: Thread1 Acquire
+                Thread1 delete lock
+            The thread should not be able to delete the lock that is
+            currently being held.
+          Output: Assertion failed: line 79, file "../threads/thread.cc"
+                  Aborted (core dumped)
+
+      (4) Waiting on a condition variable without holding a lock
+          Command: ./nachos -q 5
+          Call: Thread1 Condition Wait
+            The thread should not be able to wait a condition variable
+            without first acquiring the lock.
+          Output: Assertion failed: line 230, file "../threads/synch.cc"
+                  Aborted (core dumped)
+      
+      (5) Deleting a lock should have no threads on the lock wait queue
+          Command: ./nachos -q 6
+          Call: Thread1 Acquire
+                Thread1 Release
+                Thread2 delete lock
+          Output: No threads ready or runnable, and no pending interrupts.
+                  Assuming the program completed.
+                  Machine halting!
+
+      (6) Signalling a condition variable wakes only one thread
+          Command: ./nachos -q 7
+          Call: Thread1 Acquire
+                Thread1 Condition Wait
+                Thread2 Acquire
+                Thread2 Condition Wait
+                Thread3 Acquire
+                Thread3 Condition Signal
+            Only Thread1 should be signalled even though Thread1
+            and Thread2 are on the waiting list.
+          Output: Waiting thread: thread1
+                  Waiting thread: thread2
+                  thread1 has been unblocked by call to Signal() and is
+                  now on the ready queue
+
+      (7) Broadcasting a condition wakes up all threads
+          Command: ./nachos -q 8
+          Call: Thread1 Acquire
+                Thread1 Condition Wait
+                Thread2 Acquire
+                Thread2 Condition Wait
+                Thread3 Acquire
+                Thread3 Condition Wait
+                Thread4 Acquire
+                Thread4 Condition Broadcast
+             We put Threads1-3 on the waiting list, and then broadcast.
+             All threads should now be ready.
+          Output: Waiting thread: thread1
+                  Waiting thread: thread2
+                  Waiting thread: thread3
+                  thread1 has been unblocked by call to Broadcast() and is
+                  now on the ready queue
+                  thread2 has been unblocked by call to Broadcast() and is
+                  now on the ready queue
+                  thread3 has been unblocked by call to Broadcast() and is
+                  now on the ready queue
+
+      (8) Signalling and broadcasting to a condition variable with no
+          waiters should fall through, and future threads that wait
+          will block.
+          Command: ./nachos -q 9
+          Call: Thread1 Acquire
+                Thread1 Condition Signal
+                Thread2 Acquire
+                Thread2 Condition Broadcast
+                Thread3 Acquire
+                Thread3 Condition Wait
+            Thread1 signals, which should not do anything. Thread2
+            broadcasts, which should not do anything. Thread3 blocks,
+            which should remain blocked.
+          Output: Signal() is a no-op, nothing to signal
+                  Broadcast() is a no-op, nothing to signal
+                  Waiting thread: thread3
+      
+      (9) A thread calling signal holds the Lock passed in to Signal
+          Command: ./nachos -q 10
+          Call: Thread1 Signal
+            The thread should not be able to signal without first
+            acquiring the lock.
+          Output: Assertion failed: line 254, file "../threads/synch.cc"
+                  Aborted (core dumped)
+    
+    (10)  Deleting condition should have no threads on the CV wait queue
+          Command: ./nachos -q 11
+          Call: Thread1 Acquire
+                Thread1 Condition Wait
+                Thread2 delete Condition
+            Thread1 is put onto the wait queue, and then the condition
+            is delete. This should not be permitted.
+          Output: Waiting thread: thread1
+                  Assertion failed: line 215, file "../threads/synch.cc"
+                  Aborted (core dumped)
+
+   d. Contributions
+      Everyone contributed for this part of the assignment. Everyone took part
+      in the implementation as well as the testing.
+
+2. Mailbox
+   a. Description
+      For the Mailbox class, we implemented the Send and Receive functions.
+      The Mailbox class has a buffer that is an int for storing int messages,
+      and the buffer is shared between Send and Receive functions. The int
+      bufferSet variable acts as a flag to signify whether the buffer can be
+      overwritten or not. The int numItems keeps track of the number of Senders
+      and Receivers present in the Mailbox. If Senders are present, then
+      numItems increments, and if Receivers are present, then numItems
+      decrements. This way, we can easily match Senders to Receivers, and if
+      numItems is not 0, then we know that there are either more Senders, or
+      more Receivers, and we can act accordingly to if numItems is negative or
+      positive. The boxLock acts as the lock for the Mailbox, and bufferLock
+      acts as the lock for the buffer. Additionally, there is a Condition for
+      the buffer, and there is a Condition for the Mailbox, to keep track of
+      threads and restrict/grant access to the buffer/mailbox accordingly.
+      The Semaphores empty and full act as flags to signify if the buffer
+      is full or not.
+
+      In Send, we acquire the mailbox lock to create a critical section 
+      and increment numItems to signify that a Sender is present. If there
+      are more Senders than Receivers, then the thread will be put on the
+      mailbox's waiting list to wait for Receivers. Otherwise, the mailbox
+      will wake up the thread. The buffer is signaled as empty, and now the
+      bufferLock is acquired since the Sender will be writing to the shared
+      buffer variable. If the buffer has already been set by a previous Sender,
+      then the current Sender will be put on the waiting list until the
+      Receiver removes the existing message. After that, the Sender sets the
+      buffer to the message, flags that the buffer is now set, and wakes the 
+      Receiver. The bufferLock is release and the buffer is signalled as full.
+
+      In Receive, the mailbox lock is acquired to create a critical section
+      for changing the shared numItems variable. If there are more Receivers
+      than Senders, then the Receiver is put on the mailbox's waiting list.
+      Otherwise, the Sender is woken up. The bufferLock is acquired,
+      and a check is made to see if the the buffer has been set. If not,
+      then the Receiver waits for the Sender to drop off the message. After
+      waking up, it copies the message and sets the bufferSet flag to being
+      able to be overwritten, since the message has been obtained. The buffer
+      lock is released and the buffer is signalled as empty.
+
+   b. Status
+      We believe that this works based on the test cases we wrote, hopefully 
+      our test cases were extensive.
+   
+   c. Testing
+      We implemented the following test cases:
+      (1) Receiver(s) wait until a sender appears
+          Command: ./nachos -q 15
+          Call: Thread1 Receive
+                Thread2 Receive
+                Thread3 Receive
+                Thread4 Send 1
+            Threads 1-3 should all wait, and when Thread4 calls send, should
+            wake up Thread1, Thread1 will wait for Thread4 to drop off the
+            message, Thread4 will drop off the message 1 then wake up Thread1
+            and leave. Thread1 will copy the message, print 1, and then leave.
+          Output:
+            R: Waiting for Senders
+            Waiting thread: ONE
+            R: Waiting for Senders
+            Waiting thread: TWO
+            R: Waiting for Senders
+            Waiting thread: THREE
+            ONE has been unblocked and is now on the ready queue
+            S: Sending message: 1
+            S: Message has been dropped off, waking receiver
+            R: Accepting message from sender
+            #############################################
+            MAILBOX
+            Message received: 1 
+            Current Thread Name: ONE
+            #############################################
+      
+      (2) Sender(s) wait until a receiver appears
+          Command: ./nachos -q 16
+          Call: Thread1 Send 1
+                Thread2 Send 2
+                Thread3 Send 3
+                Thread4 Receive
+            Threads 1-3 should all wait, and when Thread4 calls receive, should
+            wake up Thread1, Thread1 will drop off the message 1 and wake
+            Thread4 and leave, and Thread4 will copy the message, print 1,
+            and then leave.
+          Output:
+            S: Waiting on the Receiver
+            Waiting thread: ONE
+            S: Waiting on the Receiver
+            Waiting thread: TWO
+            S: Waiting on the Receiver
+            Waiting thread: THREE
+            ONE has been unblocked and is now on the ready queue
+            S: Sending message: 1
+            S: Message has been dropped off, waking receiver
+            R: Accepting message from sender
+            #############################################
+            MAILBOX
+            Message received: 1 
+            Current Thread Name: FOUR
+            #############################################
+      
+      (3) Having 4 Senders then 4 Receivers, should synchronize 1 at a time
+          Command: ./nachos -q 17
+          Call: Thread1 Send 1
+                Thread2 Send 2
+                Thread3 Send 3
+                Thread4 Send 4
+                Thread5 Receive
+                Thread6 Receive
+                Thread7 Receive
+                Thread8 Receive
+           Threads 1-4 should all wait, and when Thread5 appears, should
+           wake up Thread1, wait for Thread1 to drop off message 1, and
+           Thread1 should wake up and drop off the message, wake up the
+           Receiver, then leave. Thread5 should pick up the message 1,
+           then leave. Messages should print 1 2 3 4 in order.
+         Output:
+           : Waiting on the Receiver
+           Waiting thread: ONE
+           S: Waiting on the Receiver
+           Waiting thread: TWO
+           S: Waiting on the Receiver
+           Waiting thread: THREE
+           S: Waiting on the Receiver
+           Waiting thread: FOUR
+           ONE has been unblocked and is now on the ready queue
+           Switching from thread "FIVE" to thread "SIX"
+           TWO has been unblocked and is now on the ready queue
+           THREE has been unblocked and is now on the ready queue
+           FOUR has been unblocked and is now on the ready queue
+           S: Sending message: 1
+           S: Message has been dropped off, waking receiver
+           R: Accepting message from sender
+           #############################################
+           MAILBOX
+           Message received: 1 
+           Current Thread Name: FIVE
+           #############################################
+           S: Sending message: 2
+           S: Message has been dropped off, waking receiver
+           R: Accepting message from sender
+           #############################################
+           MAILBOX
+           Message received: 2 
+           Current Thread Name: SIX
+           #############################################
+           S: Sending message: 3
+           S: Message has been dropped off, waking receiver
+           R: Accepting message from sender
+           #############################################
+           MAILBOX
+           Message received: 3 
+           Current Thread Name: SEVEN
+           #############################################
+           S: Sending message: 4
+           S: Message has been dropped off, waking receiver
+           R: Accepting message from sender
+           #############################################
+           MAILBOX
+           Message received: 4 
+           Current Thread Name: EIGHT
+           #############################################
+      
+      (4) Having 4 Receivers then 4 Senders, should synchronize 1 at a time
+          Command: ./nachos -q 18
+          Call: Thread1 Receive
+                Thread2 Receive
+                Thread3 Receive
+                Thread4 Receive
+                Thread5 Send 1
+                Thread6 Send 2
+                Thread7 Send 3
+                Thread8 Send 4
+            Threads 1-4 should all wait until a Sender appears. When Thread5
+            appears, it should drop off message 1, wake Thread1, and then
+            leave. Thread1 will awaken, pick up the message 1, and then
+            leave. This should repeat for The rest of the threads and they
+            should pair up. 1 2 3 4 should print in order.
+          Output:
+            R: Waiting for Senders
+            Waiting thread: ONE
+            R: Waiting for Senders
+            Waiting thread: TWO
+            R: Waiting for Senders
+            Waiting thread: THREE
+            R: Waiting for Senders
+            Waiting thread: FOUR
+            ONE has been unblocked and is now on the ready queue
+            S: Sending message: 1
+            S: Message has been dropped off, waking receiver
+            TWO has been unblocked and is now on the ready queue
+            THREE has been unblocked and is now on the ready queue
+            FOUR has been unblocked and is now on the ready queue
+            R: Accepting message from sender
+            #############################################
+            MAILBOX
+            Message received: 1 
+            Current Thread Name: ONE
+            #############################################
+            S: Sending message: 2
+            S: Message has been dropped off, waking receiver
+            R: Accepting message from sender
+            #############################################
+            MAILBOX
+            Message received: 2 
+            Current Thread Name: TWO
+            #############################################
+            S: Sending message: 3
+            S: Message has been dropped off, waking receiver
+            R: Accepting message from sender
+            #############################################
+            MAILBOX
+            Message received: 3 
+            Current Thread Name: THREE
+            #############################################
+            S: Sending message: 4
+            S: Message has been dropped off, waking receiver
+            R: Accepting message from sender
+            #############################################
+            MAILBOX
+            Message received: 4 
+            Current Thread Name: FOUR
+            #############################################
+
+      (5) Senders only, all should block
+          Command: ./nachos -q 19
+          Call: Thread1 Send 1
+                Thread2 Send 2
+                Thread3 Send 3
+                Thread4 Send 4
+            All threads should block, as there are no Receivers present.
+            No numbers should be printed.
+          Output:
+            S: Waiting on the Receiver
+            Waiting thread: ONE
+            S: Waiting on the Receiver
+            Waiting thread: TWO
+            S: Waiting on the Receiver
+            Waiting thread: THREE
+            S: Waiting on the Receiver
+            Waiting thread: FOUR
+
+      (6) Receivers only, all block
+          Command: ./nachos -q 20
+          Call: Thread1 Receive
+                Thread2 Receive
+                Thread3 Receive
+                Thread4 Receive
+            All threads should block, as there are no Senders present.
+          Output:
+            R: Waiting for Senders
+            Waiting thread: ONE
+            R: Waiting for Senders
+            Waiting thread: TWO
+            R: Waiting for Senders
+            Waiting thread: THREE
+            R: Waiting for Senders
+            Waiting thread: FOUR
+       
+      ******************************************************
+      (7) In-order Send and Receive calls with thread re-use
+          Command: ./nachos -q 21
+          Call:
+          Output:
+      
+      (8) In-order Send and Receive calls with no thread re-use
+          Command: ./nachos -q 22
+          Call: Thread1 Send 1
+                Thread2 Receive
+                Thread3 Send 2
+                Thread4 Receive
+                Thread5 Send 3
+                Thread6 Receive
+            Thread1 should wait for a Receiver, and Thread2 should wake
+            up Thread1 upon entering, then wait for Thread1 to drop off
+            the message. Thread1 should wake up, drop off
+            the message 1, wake up Thread2, and leave. Thread2 should
+            pick up the message 1, print 1, and leave. This pairing
+            should happen for threads 3 and 4, as well as 5 and 6.
+            The results should print 1 2 3 in order.
+          Output:
+            S: Waiting on the Receiver
+            Waiting thread: ONE
+            ONE has been unblocked and is now on the ready queue
+            S: Waiting on the Receiver
+            Waiting thread: THREE
+            THREE has been unblocked and is now on the ready queue
+            S: Waiting on the Receiver
+            Waiting thread: FIVE
+            FIVE has been unblocked and is now on the ready queue
+            S: Sending message: 1
+            S: Message has been dropped off, waking receiver
+            R: Accepting message from sender
+            #############################################
+            MAILBOX
+            Message received: 1 
+            Current Thread Name: TWO
+            #############################################
+            S: Sending message: 2
+            S: Message has been dropped off, waking receiver
+            R: Accepting message from sender
+            #############################################
+            MAILBOX
+            Message received: 2 
+            Current Thread Name: FOUR
+            #############################################
+            S: Sending message: 3
+            S: Message has been dropped off, waking receiver
+            R: Accepting message from sender
+            #############################################
+            MAILBOX
+            Message received: 3 
+            Current Thread Name: SIX
+            #############################################
+
+   d. Contributions
+      Linda and Angela started off with the implementation, but Linda and
+      Bhagya worked on tests and the debugging of the implementation.
+
+3. Join
+   a. Description
+      To implement Join, we added a join private variable in the Thread class to
+      signal if the thread will have Join called on it. A child thread can have
+      Join called on it while inside its parent thread, then the parent will wait
+      for the child to finish executing, before joining the child thread and
+      continuing execution (of the parent).
+   b. Status
+      Join seems to be working correctly in  standard use cases, but there
+      may exist a few corner cases in which it does not behave as expected. We
+      were unable to complete a few of the tests.
+   c. Testing
+      We could not get tests 1, 2, and 3 implemented, but tests 4, 5, 6, and 7
+      have been implemented.
+      (1) a thread that will be joined only is is only destroyed once Join has
+          been called on it
+      (2) if a parent calls Join on a child and the child is still executing, the
+          parent waits
+      (3) if a parent calls Join on a child and the child has finished executing,
+          the parent does not block
+      (4) a thread does not call Join on itself
+      (5) Join is only invoked on threads created to be joined
+      (6) Join is only called on a thread that has forked
+      (7) Join is not called more than once on a thread (if it is, then this could
+          easily lead to a segmentation fault because the child is likely deleted).
+   d. Contributions
+      Linda and Bhagya worked on the implementation of Join while Frank and
+      Angela worked on the 7 test cases and also debugged the initial 
+      implementation.
+
+4. Priorities
+   a. Description
+      For this part of the assignment, we added priorities to the thread class
+      so that every thread was given a default priority of 0 and was given the
+      ability to have a priority change if setPriority was called. To make sure
+      the ready queue in scheduler was ordered by decreasing priorities, we 
+      used SortedInsert instead of Append and SortedRemove instead of Remove.
+      To flip the ordering (because SortedInsert inserted threads in decreasing
+      order), we set priorities in Thread to their negative values, so if the
+      thread was set to have a priority of 3, the value in the Thread class
+      would be -3 so that it could be ordered correctly based on the current
+      implementation.
+   
+   b. Status
+      We believe our implementation works based on the tests we have written.
+   
+   c. Testing
+      We implemented the following test cases:
+      (1) 6 threads of random priority
+          Command: ./nachos -q 38
+          Call: Thread1 setPriority -1
+                Thread2 setPriority -8
+                Thread3 setPriority 6
+                Thread4 setPriority 10
+                Thread5 setPriority 8
+                (Thread6 priority not set, default 0)
+                (then fork all threads)
+            Create 6 threads with random priorities, then print the ready queue
+            We created 6 threads of random priorities, in different order.
+            We did not call setPriority on one of the threads, and it correctly
+            initialized the priority to 0.
+            When then printed the ready queue and the threads were sorted
+            in order from highest priority at the front, and lowest at the back.
+          Output:
+            Ready list contents:
+            thread4, thread5, thread3, thread6, thread1, thread2
+
+      (2) Create 8 threads with random priorities, wait 2 threads, print the
+         ready queue. Wake up the 2 threads, print the ready queue.
+         Command: ./nachos -q 39
+         Call: Thread1 setPriority 12
+               Thread2 setPriority 5
+               Thread3 setPriority 6
+               Thread4 setPriority 10
+               Thread5 setPriority 9
+               Thread6 setPriority -1
+               Thread7 setPriority 3
+               Thread8 setPriority 4
+               
+               Thread3 Fork
+               Thread4 Fork
+               Thread1 Wait
+               Thread5 Wait
+               Thread6 Fork
+               Thread2 Signal Thread1
+               Thread8 Signal Thread5
+               Thread7 Fork
+           For this test, we signalled 2 threads to wait and then set their
+           priority to 0 (for debugging purposes), and then printed the
+           elements of the initial ready queue. 
+           As we called wait on threads 1 and 5, we printed the ready queue, 
+           before and after the wait is called. As threads 2 and 8 signal
+           the waited threads, the ready queue is printed before and after the
+           signal is called.
+         Output:
+          First print, with all threads forked:
+          Ready list contents:
+          thread1, thread4, thread5, thread3, thread2, thread8, thread7, thread6, 
+          Before waiting thread: thread1
+          Ready list contents:
+          thread4, thread5, thread3, thread2, thread8, thread7, thread6, 
+          Waiting thread: thread1
+          Before waiting thread: thread5
+          Ready list contents:
+          thread3, thread2, thread8, thread7, thread6, 
+          Waiting thread: thread5
+          Before signalling in thread: thread2
+          Ready list contents:
+          thread8, thread7, thread6, 
+          thread1 has been unblocked and is now on the ready queue
+          After signalling in thread: thread2
+          Ready list contents:
+          thread8, thread7, thread1, thread6, 
+          Before signalling in thread: thread8
+          Ready list contents:
+          thread7, thread1, thread6, 
+          thread5 has been unblocked and is now on the ready queue
+          After signalling in thread: thread8
+          Ready list contents:
+          thread7, thread1, thread5, thread6, 
+          After Wait call has been finished for thread: thread1
+          Ready list contents:
+          thread5, thread6, 
+          After Wait call has been finished for thread: thread5
+          Ready list contents:
+          thread6, 
+
+   d. Contributions
+      Linda and Bhagya worked on both the implementation and the tests for this
+      part.
+
+  5. Whales
+   a. Description
+      To implement the whale matchmaker problem we used 1 lock and 3 condition
+      variables for each of the whale types. We used integer variables to keep
+      track of the number of each type of whale made (numMales, numFemales, and
+      numMM). We also used variables to keep track of which of the Male,
+      Female, and Matchmaker methods returns and how many triplets were 
+      created. We do the same things in our Male, Female, and Matchmaker
+      methods except for the usage of the variables that are used for that
+      particular method. A general idea of what we do for each method is we
+      Acquire the lock, increment the variable to indicate that type of whale
+      was created. We then called wait on the corresponding condition variable
+      (maleCV for Male, femaleCV for Female, mmCV for Matchmaker) if the other
+      two whale types are not equally present. For example, if we have 2 males,
+      1 female, and 1 matchmaker, the maleCV will call wait because there isn't
+      an equal number of female and matchmaker whales present to pair the 2nd
+      male whale with. If there were an equal number of whales, we would call
+      signal on release the waiting for the other two condition variables for
+      the other two whale types(we signal femaleCV and mmCV in Male()). After
+      this point, the whale type should return so we call a print method Done()
+      that prints a match has been made and incrememnts our triplet counter. We
+      then release the lock.
+     
+   b. Status
+      We are pretty confident in our implementation of Whales based on the
+      test cases we have written. We attempted to write tests such that they 
+      would cover every potential case.
+
+   c. Testing
+      We implemented 5 tests for Whales, for all of these tests we set the
+      priority to -1 so that the print statement can print after all whale
+      matching has taken place. These were the cases we implemented:
+      (1) Case where males and females are made, no matchmakers are made and
+          no triplets should be made
+          Command: ./nachos -q 51
+          Call: Thread1 Male
+                Thread2 Male
+                Thread3 Female
+                Thread4 Female
+                Thread5 Male
+                Thread6 PrintOutput
+            For this case we ensured that no matches were made without 
+            matchmakers. So there would just be 3 unmatched males and
+            2 unmatched females.
+          Output: 
+            Number of Males has been incremented, values is now 1
+            Waiting thread: T1
+            Number of Males has been incremented, values is now 2
+            Waiting thread: T2
+            Number of Females has been incremented, values is now 1
+            Waiting thread: T3
+            Number of Females has been incremented, values is now 2
+            Waiting thread: T4
+            Number of Males has been incremented, values is now 3
+            Waiting thread: T5
+            Triplets made: 0
+            Unmatched Males: 3
+            Unmatched Females: 2
+            Unmatched Matchmakers: 0
+
+      (2) Case where we create 2 triplets
+          Command: ./nachos -q 52
+          Call: Thread1 
+                Thread2
+                Thread3
+                Thread4
+                Thread5
+                Thread6
+                Thread7 Print Output
+          We expect two triplets to be made with no unmatched whales left.
+          Output:
+            Number of Males has been incremented, values is now 1
+            Waiting thread: T1
+            Number of Females has been incremented, values is now 1
+            Waiting thread: T2
+            Number of MMs has been incremented, values is now 1
+            T1 has been unblocked and is now on the ready queue
+            T2 has been unblocked and is now on the ready queue
+            Match has been detected in Matchmaker.
+            Number of MMs has been incremented, values is now 2
+            Waiting thread: T4
+            Number of Females has been incremented, values is now 2
+            Waiting thread: T5
+            Number of Males has been incremented, values is now 2
+            T5 has been unblocked and is now on the ready queue
+            T4 has been unblocked and is now on the ready queue
+            Match has been detected in Male.
+            Match has been detected in Male.
+            Match has been detected in Female.
+            Match has been detected in Female.
+            Match has been detected in Matchmaker.
+            Triplets made: 2
+            Unmatched Males: 0
+            Unmatched Females: 0
+            Unmatched Matchmakers: 0
+
+      (3) Case where we test an equal number of males and matchmakers but not
+          an equal number of females so there is only 1 proper triplet made
+          Command: ./nachos -q 53
+          Call: Thread1 Male
+                Thread2 Male
+                Thread3 Female
+                Thread4 Matchmaker
+                Thread5 Matchmaker
+                Thread6 print output
+          Output:
+              Number of Males has been incremented, values is now 1
+              Waiting thread: T1
+              Number of Males has been incremented, values is now 2
+              Waiting thread: T2
+              Number of Females has been incremented, values is now 1
+              Waiting thread: T3
+              Number of MMs has been incremented, values is now 1
+              T1 has been unblocked and is now on the ready queue
+              T3 has been unblocked and is now on the ready queue
+              Match has been detected in Matchmaker.
+              Number of MMs has been incremented, values is now 2
+              Waiting thread: T5
+              Match has been detected in Male.
+              Match has been detected in Female.
+              Triplets made: 1
+              Unmatched Males: 1
+              Unmatched Females: 0
+              Unmatched Matchmakers: 1
+
+      (4) Case where 2 triplets made but there is one extra/unmatched male whale
+          Command: ./nachos -q 54
+          Call: Thread1 Male
+                Thread2 Male
+                Thread3 Male
+                Thread4 Female
+                Thread5 Female
+                Thread6 Matchmaker
+                Thread7 Matchmaker
+                Thread8 print output
+          Output:
+            Number of Males has been incremented, values is now 1
+            Waiting thread: T1
+            Number of Males has been incremented, values is now 2
+            Waiting thread: T2
+            Number of Males has been incremented, values is now 3
+            Waiting thread: T3
+            Number of Females has been incremented, values is now 1
+            Waiting thread: T4
+            Number of Females has been incremented, values is now 2
+            Waiting thread: T5
+            Number of MMs has been incremented, values is now 1
+            T1 has been unblocked and is now on the ready queue
+            T4 has been unblocked and is now on the ready queue
+            Match has been detected in Matchmaker.
+            Number of MMs has been incremented, values is now 2
+            T2 has been unblocked and is now on the ready queue
+            T5 has been unblocked and is now on the ready queue
+            Match has been detected in Matchmaker.
+            Match has been detected in Male.
+            Match has been detected in Female.
+            Match has been detected in Male.
+            Match has been detected in Female.
+            Triplets made: 2
+            Unmatched Males: 1
+            Unmatched Females: 0
+            Unmatched Matchmakers: 0
+
+      (5) Case where we have only matchmakers and females, no triplets should
+          be made and there should be plenty of unmatched whales.
+          Command: ./nachos -q 55
+          Call: Thread1 Matchmaker
+                Thread2 Matchmaker
+                Thread3 Matchmaker
+                Thread4 Matchmaker
+                Thread5 Matchmaker
+                Thread6 Matchmaker
+                Thread7 Female
+                Thread8 print output
+          Output:
+            Number of MMs has been incremented, values is now 1
+            Waiting thread: T1
+            Number of MMs has been incremented, values is now 2
+            Waiting thread: T2
+            Number of MMs has been incremented, values is now 3
+            Waiting thread: T3
+            Number of MMs has been incremented, values is now 4
+            Waiting thread: T4
+            Number of MMs has been incremented, values is now 5
+            Waiting thread: T5
+            Number of MMs has been incremented, values is now 6
+            Waiting thread: T6
+            Number of Females has been incremented, values is now 1
+            Waiting thread: T7
+            Triplets made: 0
+            Unmatched Males: 0
+            Unmatched Females: 1
+            Unmatched Matchmakers: 6
+
+   d. Contributions
+      Angela and Frank attempted the initial implementation but Bhagya and 
+      Angela worked on the bulk of it using synchronization logic and condition
+      variables. Frank and Bhagya wrote tests.
