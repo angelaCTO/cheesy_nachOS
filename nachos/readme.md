@@ -1,6 +1,10 @@
-# Nachos
+# Nachos : An Experimental Operating System
 
-CSE 120 Project for UCSD
+**Collaborators :**
+* Bhagya Sharma
+* Linda Shih
+* Angela To
+* Frank Mezzatesta
 
 ## Install on the Lab Machines
 
