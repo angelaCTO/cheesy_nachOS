@@ -1,4 +1,4 @@
-# Nachos : An Experimental Operating System
+# NachOS : An Experimental Operating System
 
 ## Collaborators :
 * Bhagya Sharma
