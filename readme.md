@@ -1,6 +1,6 @@
 # Nachos : An Experimental Operating System
 
-**Collaborators :**
+## Collaborators :
 * Bhagya Sharma
 * Linda Shih
 * Angela To
