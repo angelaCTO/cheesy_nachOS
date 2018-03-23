@@ -1,5 +1,7 @@
 # NachOS : An Experimental Operating System
 
+## "Not Another Completely Heuristic Operating System"
+
 ## Collaborators :
 * Bhagya Sharma
 * Linda Shih
